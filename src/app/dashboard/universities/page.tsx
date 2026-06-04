@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { University } from "@/types";
 
 const universitySchema = z.object({
@@ -24,11 +25,7 @@ const universitySchema = z.object({
 
 type UniversityForm = z.infer<typeof universitySchema>;
 
-const mockUniversities: University[] = [
-  { id: "1", name: "University of Cape Town", code: "UCT", description: "Leading research university in South Africa", created_at: "2024-01-01" },
-  { id: "2", name: "Stellenbosch University", code: "SU", description: "Comprehensive university in Stellenbosch", created_at: "2024-01-15" },
-  { id: "3", name: "University of the Witwatersrand", code: "WITS", description: "Research-intensive university in Johannesburg", created_at: "2024-02-01" },
-];
+
 
 export default function UniversitiesPage() {
   const [search, setSearch] = useState("");
@@ -42,20 +39,39 @@ export default function UniversitiesPage() {
   });
 
   useEffect(() => {
-    setTimeout(() => {
-      const filtered = mockUniversities.filter((u) =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.code?.toLowerCase().includes(search.toLowerCase())
-      );
-      setUniversities(filtered);
-      setLoading(false);
-    }, 300);
+    let mounted = true;
+    const fetchUniversities = async () => {
+      setLoading(true);
+      try {
+        const params: any = {};
+        if (search) params.search = search;
+        const data = await adminService.getUniversities(params);
+        if (!mounted) return;
+        setUniversities(data.results || data);
+      } catch (err) {
+        console.error("Failed to fetch universities:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchUniversities();
+    return () => {
+      mounted = false;
+    };
   }, [search]);
 
-  const onSubmit = (data: UniversityForm) => {
-    console.log("Create university:", data);
-    setOpen(false);
-    form.reset();
+  const onSubmit = async (data: UniversityForm) => {
+    try {
+      await adminService.createUniversity(data);
+      setOpen(false);
+      form.reset();
+      // refresh list
+      const res = await adminService.getUniversities({ search: "" });
+      setUniversities(res.results || res);
+    } catch (err) {
+      console.error("Failed to create university:", err);
+    }
   };
 
   return (

@@ -14,42 +14,51 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { AdminStatistics } from "@/types";
-
-// Mock data for demonstration when API is not available
-const mockStats: AdminStatistics = {
-  totalUsers: 1247,
-  totalStudents: 1089,
-  totalLecturers: 142,
-  totalAdmins: 16,
-  totalCourses: 89,
-  totalEnrollments: 3456,
-  activeSessions: 23,
-  unresolvedReports: 7,
-  pendingAdminRequests: 12,
-};
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStatistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
-    // Simulate API call - in production, use adminService.getStatistics()
     const fetchStats = async () => {
+      setLoading(true);
       try {
-        // Replace with actual API call:
-        // const data = await adminService.getStatistics();
-        // setStats(data);
+        const [allUsers, students, lecturers, admins, coursesRes, enrollments, studySessions, issueReports, adminRequests] =
+          await Promise.all([
+            adminService.getUsers({ page_size: 1 }),
+            adminService.getUsers({ role: 'student', page_size: 1 }),
+            adminService.getUsers({ role: 'lecturer', page_size: 1 }),
+            adminService.getUsers({ role: 'admin', page_size: 1 }),
+            adminService.getCourses({ page_size: 1 }),
+            adminService.getBulkEnrollments({ page_size: 1 }),
+            adminService.getStudySessions({ page_size: 1 }),
+            adminService.getIssueReports({ resolved: false }),
+            adminService.getAdminRequests({ status: 'pending' }),
+          ]);
 
-        // For now, use mock data
-        setTimeout(() => {
-          setStats(mockStats);
-          setLoading(false);
-        }, 500);
+        const count = (v: unknown): number => {
+          type WithCount = { count?: number };
+          if (v && typeof (v as WithCount).count === 'number') return (v as WithCount).count as number;
+          if (Array.isArray(v)) return (v as unknown[]).length;
+          return 0;
+        };
+
+        setStats({
+          totalUsers: count(allUsers),
+          totalStudents: count(students),
+          totalLecturers: count(lecturers),
+          totalAdmins: count(admins),
+          totalCourses: count(coursesRes),
+          totalEnrollments: count(enrollments),
+          activeSessions: count(studySessions),
+          unresolvedReports: count(issueReports),
+          pendingAdminRequests: count(adminRequests),
+        });
       } catch (err) {
         console.error("Failed to fetch stats:", err);
-        setError(true);
+      } finally {
         setLoading(false);
       }
     };

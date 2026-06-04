@@ -10,14 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { Faculty } from "@/types";
-
-const mockFaculties: Faculty[] = [
-  { id: "1", name: "Faculty of Science", university: "u1", universityName: "University of Cape Town", created_at: "2024-01-01" },
-  { id: "2", name: "Faculty of Engineering", university: "u1", universityName: "University of Cape Town", created_at: "2024-01-15" },
-  { id: "3", name: "Faculty of Arts", university: "u2", universityName: "Stellenbosch University", created_at: "2024-02-01" },
-  { id: "4", name: "Faculty of Commerce", university: "u2", universityName: "Stellenbosch University", created_at: "2024-02-15" },
-];
 
 export default function FacultiesPage() {
   const [search, setSearch] = useState("");
@@ -26,13 +20,26 @@ export default function FacultiesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      let filtered = mockFaculties;
-      if (search) filtered = filtered.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
-      if (universityFilter !== "all") filtered = filtered.filter((f) => f.university === universityFilter);
-      setFaculties(filtered);
-      setLoading(false);
-    }, 300);
+    let mounted = true;
+    const fetchFaculties = async () => {
+      setLoading(true);
+      try {
+        const params: any = {};
+        if (search) params.search = search;
+        if (universityFilter !== "all") params.university = universityFilter;
+        const data = await adminService.getFaculties(params);
+        if (!mounted) return;
+        setFaculties(data.results || data);
+      } catch (err) {
+        console.error("Failed to fetch faculties:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchFaculties();
+    return () => {
+      mounted = false;
+    };
   }, [search, universityFilter]);
 
   return (

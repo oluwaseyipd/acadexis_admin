@@ -33,111 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { AdminUser, UserFilters } from "@/types";
-
-// Mock data
-const mockUsers: AdminUser[] = [
-  {
-    id: "1",
-    email: "john.student@university.edu",
-    role: "student",
-    university: "u1",
-    universityName: "University of Cape Town",
-    is_active: true,
-    is_staff: false,
-    date_joined: "2025-09-01T10:00:00Z",
-    profile: {
-      id: "p1",
-      first_name: "John",
-      last_name: "Abiola",
-      identification_number: "STU-001",
-      level: "3rd Year",
-      department: "d1",
-      departmentName: "Computer Science",
-      avatar: null,
-    },
-  },
-  {
-    id: "2",
-    email: "prof.chen@university.edu",
-    role: "lecturer",
-    university: "u1",
-    universityName: "University of Cape Town",
-    is_active: true,
-    is_staff: true,
-    date_joined: "2024-01-15T08:00:00Z",
-    profile: {
-      id: "p2",
-      first_name: "Sarah",
-      last_name: "Chen",
-      identification_number: "LEC-001",
-      level: "Professor",
-      department: "d1",
-      departmentName: "Computer Science",
-      avatar: null,
-    },
-  },
-  {
-    id: "3",
-    email: "admin@acadexis.com",
-    role: "admin",
-    university: null,
-    universityName: null,
-    is_active: true,
-    is_staff: true,
-    date_joined: "2023-06-01T00:00:00Z",
-    profile: {
-      id: "p3",
-      first_name: "Super",
-      last_name: "Admin",
-      identification_number: "ADM-001",
-      level: "N/A",
-      department: null,
-      departmentName: null,
-      avatar: null,
-    },
-  },
-  {
-    id: "4",
-    email: "mary.jane@university.edu",
-    role: "student",
-    university: "u1",
-    universityName: "University of Cape Town",
-    is_active: true,
-    is_staff: false,
-    date_joined: "2025-09-02T12:00:00Z",
-    profile: {
-      id: "p4",
-      first_name: "Mary",
-      last_name: "Jane",
-      identification_number: "STU-002",
-      level: "2nd Year",
-      department: "d3",
-      departmentName: "Mathematics",
-      avatar: null,
-    },
-  },
-  {
-    id: "5",
-    email: "inactive.user@university.edu",
-    role: "student",
-    university: "u2",
-    universityName: "Stellenbosch University",
-    is_active: false,
-    is_staff: false,
-    date_joined: "2025-08-15T09:00:00Z",
-    profile: {
-      id: "p5",
-      first_name: "Inactive",
-      last_name: "User",
-      identification_number: "STU-003",
-      level: "1st Year",
-      department: "d4",
-      departmentName: "Physics",
-      avatar: null,
-    },
-  },
-];
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
@@ -148,30 +45,35 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      let filtered = [...mockUsers];
-      if (search) {
-        const s = search.toLowerCase();
-        filtered = filtered.filter(
-          (u) =>
-            u.email.toLowerCase().includes(s) ||
-            u.profile?.first_name.toLowerCase().includes(s) ||
-            u.profile?.last_name.toLowerCase().includes(s)
-        );
+    let mounted = true;
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const params: any = { page };
+        if (search) params.search = search;
+        if (roleFilter !== "all") params.role = roleFilter;
+        if (statusFilter === "active") params.is_active = true;
+        if (statusFilter === "inactive") params.is_active = false;
+
+        const data = await adminService.getUsers(params);
+        if (!mounted) return;
+        setUsers(data.results || data);
+        // store total count if available
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch users:", err);
+        if (!mounted) return;
+        setLoading(false);
       }
-      if (roleFilter !== "all") {
-        filtered = filtered.filter((u) => u.role === roleFilter);
-      }
-      if (statusFilter === "active") {
-        filtered = filtered.filter((u) => u.is_active);
-      } else if (statusFilter === "inactive") {
-        filtered = filtered.filter((u) => !u.is_active);
-      }
-      setUsers(filtered);
-      setLoading(false);
-    }, 300);
-  }, [search, roleFilter, statusFilter]);
+    };
+
+    fetchUsers();
+    return () => {
+      mounted = false;
+    };
+  }, [search, roleFilter, statusFilter, page]);
 
   const getRoleBadge = (role: string) => {
     switch (role) {

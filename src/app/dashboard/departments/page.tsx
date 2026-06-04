@@ -10,14 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { Department } from "@/types";
-
-const mockDepartments: Department[] = [
-  { id: "1", name: "Computer Science", code: "CS", faculty: "f1", facultyName: "Faculty of Science", created_at: "2024-01-01" },
-  { id: "2", name: "Mathematics", code: "MATH", faculty: "f1", facultyName: "Faculty of Science", created_at: "2024-01-15" },
-  { id: "3", name: "Physics", code: "PHYS", faculty: "f1", facultyName: "Faculty of Science", created_at: "2024-02-01" },
-  { id: "4", name: "Chemical Engineering", code: "CHE", faculty: "f2", facultyName: "Faculty of Engineering", created_at: "2024-02-15" },
-];
 
 export default function DepartmentsPage() {
   const [search, setSearch] = useState("");
@@ -26,13 +20,26 @@ export default function DepartmentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      let filtered = mockDepartments;
-      if (search) filtered = filtered.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()) || d.code?.toLowerCase().includes(search.toLowerCase()));
-      if (facultyFilter !== "all") filtered = filtered.filter((d) => d.faculty === facultyFilter);
-      setDepartments(filtered);
-      setLoading(false);
-    }, 300);
+    let mounted = true;
+    const fetchDepartments = async () => {
+      setLoading(true);
+      try {
+        const params: any = {};
+        if (search) params.search = search;
+        if (facultyFilter !== "all") params.university = facultyFilter;
+        const data = await adminService.getDepartments(params);
+        if (!mounted) return;
+        setDepartments(data.results || data);
+      } catch (err) {
+        console.error("Failed to fetch departments:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchDepartments();
+    return () => {
+      mounted = false;
+    };
   }, [search, facultyFilter]);
 
   return (

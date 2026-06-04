@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient, setAuthToken, clearAuthToken } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
+import { useAppStore } from '@/store/useAppStore';
 
 interface LoginCredentials {
   email: string;
@@ -19,7 +20,8 @@ interface AuthUser {
 
 export const useAuth = () => {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { setUser } = useAppStore();
+  const [user, setLocalUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export const useAuth = () => {
 
       // Store user
       setUser(data.user);
+      setLocalUser(data.user);
 
       // Verify staff status
       if (!data.user.is_staff) {
@@ -76,22 +79,24 @@ export const useAuth = () => {
         localStorage.removeItem('admin_user');
       }
       setUser(null);
+      setLocalUser(null);
       setLoading(false);
       await router.push('/auth/login');
     }
-  }, [router]);
+  }, [router, setUser]);
 
   const refreshUser = useCallback(async () => {
     try {
       const { data } = await apiClient.get(API_ENDPOINTS.ADMIN.USERS + 'me/');
       setUser(data);
+      setLocalUser(data);
       if (typeof window !== 'undefined') {
         localStorage.setItem('admin_user', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Failed to refresh user:', err);
     }
-  }, []);
+  }, [setUser]);
 
   return { user, loading, error, login, logout, refreshUser };
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import adminService from "@/services/adminService";
 import AdminSidebar from "./AdminSidebar";
@@ -14,21 +14,28 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { isAuthenticated, isLoading, setUser, setLoading, sidebarOpen } = useAppStore();
+  const tokenValid = typeof window !== "undefined" && adminService.isAuthenticated();
 
   useEffect(() => {
-    // Check authentication
-    if (!isAuthenticated && !adminService.isAuthenticated()) {
-      router.push("/auth/login");
-      return;
-    }
+    const initializeAuth = async () => {
+      if (!isAuthenticated && !tokenValid) {
+        router.push("/auth/login");
+        return;
+      }
 
-    // If authenticated but no user in store, fetch user info
-    if (isAuthenticated) {
+      if (!isAuthenticated && tokenValid) {
+        const currentUser = await adminService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        }
+      }
+
       setLoading(false);
-    }
-  }, [isAuthenticated, router, setUser, setLoading]);
+    };
+
+    initializeAuth();
+  }, [isAuthenticated, router, setUser, setLoading, tokenValid]);
 
   if (isLoading) {
     return (
@@ -38,8 +45,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  // If not authenticated, don't render anything (will redirect)
-  if (!isAuthenticated) {
+  // If not authenticated and no valid token, don't render anything (will redirect)
+  if (!isAuthenticated && !tokenValid) {
     return null;
   }
 

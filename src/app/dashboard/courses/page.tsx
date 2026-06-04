@@ -31,78 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import adminService from "@/services/adminService";
 import type { AdminCourse } from "@/types";
-
-const mockCourses: AdminCourse[] = [
-  {
-    id: "1",
-    title: "Introduction to Computer Science",
-    code: "CS101",
-    description: "Fundamental concepts of computer science",
-    department: "d1",
-    departmentName: "Computer Science",
-    lecturer: "l1",
-    lecturerName: "Dr. Sarah Chen",
-    thumbnail: null,
-    level: "100",
-    lecturer_remark: "",
-    materials_count: 12,
-    students_enrolled: 156,
-    created_at: "2025-01-15T10:00:00Z",
-    updated_at: "2025-06-01T10:00:00Z",
-  },
-  {
-    id: "2",
-    title: "Data Structures and Algorithms",
-    code: "CS201",
-    description: "Advanced data structures and algorithm design",
-    department: "d1",
-    departmentName: "Computer Science",
-    lecturer: "l2",
-    lecturerName: "Prof. John Smith",
-    thumbnail: null,
-    level: "200",
-    lecturer_remark: "",
-    materials_count: 8,
-    students_enrolled: 89,
-    created_at: "2025-01-20T10:00:00Z",
-    updated_at: "2025-05-15T10:00:00Z",
-  },
-  {
-    id: "3",
-    title: "Linear Algebra",
-    code: "MATH101",
-    description: "Introduction to linear algebra",
-    department: "d2",
-    departmentName: "Mathematics",
-    lecturer: "l3",
-    lecturerName: "Dr. Emily White",
-    thumbnail: null,
-    level: "100",
-    lecturer_remark: "",
-    materials_count: 15,
-    students_enrolled: 203,
-    created_at: "2025-02-01T10:00:00Z",
-    updated_at: "2025-06-02T10:00:00Z",
-  },
-  {
-    id: "4",
-    title: "Machine Learning Basics",
-    code: "CS401",
-    description: "Introduction to machine learning concepts",
-    department: "d1",
-    departmentName: "Computer Science",
-    lecturer: "l4",
-    lecturerName: "Dr. Michael Brown",
-    thumbnail: null,
-    level: "400",
-    lecturer_remark: "",
-    materials_count: 20,
-    students_enrolled: 67,
-    created_at: "2025-03-01T10:00:00Z",
-    updated_at: "2025-06-03T10:00:00Z",
-  },
-];
 
 export default function AdminCoursesPage() {
   const [search, setSearch] = useState("");
@@ -111,23 +41,28 @@ export default function AdminCoursesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      let filtered = [...mockCourses];
-      if (search) {
-        const s = search.toLowerCase();
-        filtered = filtered.filter(
-          (c) =>
-            c.title.toLowerCase().includes(s) ||
-            c.code.toLowerCase().includes(s) ||
-            c.lecturerName?.toLowerCase().includes(s)
-        );
+    let mounted = true;
+    const fetchCourses = async () => {
+      setLoading(true);
+      try {
+        const params: any = {};
+        if (search) params.search = search;
+        if (levelFilter !== "all") params.level = levelFilter;
+
+        const data = await adminService.getCourses(params);
+        if (!mounted) return;
+        setCourses(data.results || data);
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+      } finally {
+        if (mounted) setLoading(false);
       }
-      if (levelFilter !== "all") {
-        filtered = filtered.filter((c) => c.level === levelFilter);
-      }
-      setCourses(filtered);
-      setLoading(false);
-    }, 300);
+    };
+
+    fetchCourses();
+    return () => {
+      mounted = false;
+    };
   }, [search, levelFilter]);
 
   return (
