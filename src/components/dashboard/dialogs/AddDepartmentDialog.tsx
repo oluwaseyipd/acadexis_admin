@@ -44,7 +44,6 @@ export function AddDepartmentDialog({ onDepartmentAdded }: AddDepartmentDialogPr
       toast({
         title: "Error",
         description: "Failed to load faculties",
-        variant: "destructive",
       });
     } finally {
       setLoadingFaculties(false);
@@ -58,7 +57,6 @@ export function AddDepartmentDialog({ onDepartmentAdded }: AddDepartmentDialogPr
       toast({
         title: "Error",
         description: "Department name is required",
-        variant: "destructive",
       });
       return;
     }
@@ -67,7 +65,6 @@ export function AddDepartmentDialog({ onDepartmentAdded }: AddDepartmentDialogPr
       toast({
         title: "Error",
         description: "Department code is required",
-        variant: "destructive",
       });
       return;
     }
@@ -76,7 +73,6 @@ export function AddDepartmentDialog({ onDepartmentAdded }: AddDepartmentDialogPr
       toast({
         title: "Error",
         description: "Please select a faculty",
-        variant: "destructive",
       });
       return;
     }
@@ -102,7 +98,6 @@ export function AddDepartmentDialog({ onDepartmentAdded }: AddDepartmentDialogPr
       toast({
         title: "Error",
         description: "Failed to create department",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);

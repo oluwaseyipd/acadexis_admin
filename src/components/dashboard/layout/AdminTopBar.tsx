@@ -21,6 +21,16 @@ export default function AdminTopBar() {
     if (user?.profile) {
       return `${user.profile.first_name[0]}${user.profile.last_name[0]}`.toUpperCase();
     }
+
+    if (user?.name) {
+      return user.name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+    }
+
     return "SA";
   };
 
@@ -77,7 +87,10 @@ export default function AdminTopBar() {
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:block">
-            <p className="text-sm font-medium">{user?.name || "Super Admin"}</p>
+            <p className="text-sm font-medium">
+              {user?.name ||
+                (user?.profile ? `${user.profile.first_name} ${user.profile.last_name}` : "Super Admin")}
+            </p>
             <p className="text-xs text-muted-foreground">{user?.email || "admin@acadexis.com"}</p>
           </div>
         </div>

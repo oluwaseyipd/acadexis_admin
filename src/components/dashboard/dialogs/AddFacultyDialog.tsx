@@ -43,7 +43,6 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       toast({
         title: "Error",
         description: "Failed to load universities",
-        variant: "destructive",
       });
     } finally {
       setLoadingUniversities(false);
@@ -57,7 +56,6 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       toast({
         title: "Error",
         description: "Faculty name is required",
-        variant: "destructive",
       });
       return;
     }
@@ -66,7 +64,6 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       toast({
         title: "Error",
         description: "Please select a university",
-        variant: "destructive",
       });
       return;
     }
@@ -91,7 +88,6 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       toast({
         title: "Error",
         description: "Failed to create faculty",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);

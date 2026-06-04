@@ -2,7 +2,7 @@ import { useCallback, type ReactNode, type ReactElement, type JSXElementConstruc
 import { toast as sonnerToast, Toaster } from 'sonner';
 
 export interface Toast {
-  id: string;
+  id?: string;
   title?: string;
   description?: string;
   action?: {

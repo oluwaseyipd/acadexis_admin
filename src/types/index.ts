@@ -5,6 +5,7 @@ export interface AdminUser {
   id: string;
   email: string;
   role: "student" | "lecturer" | "admin";
+  name?: string;
   university: string | null;
   universityName: string | null;
   is_active: boolean;

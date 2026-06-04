@@ -1,16 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AuthUser } from "@/types";
+import type { AdminUser, AuthUser } from "@/types";
+
+export type AppUser = AdminUser | AuthUser;
 
 interface AppState {
-  user: AuthUser | null;
+  user: AppUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   sidebarOpen: boolean;
   searchQuery: string;
 
   // Actions
-  setUser: (user: AuthUser | null) => void;
+  setUser: (user: AppUser | null) => void;
   setLoading: (loading: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
