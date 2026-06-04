@@ -25,18 +25,17 @@ export default function AdminDashboardPage() {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const [allUsers, students, lecturers, admins, coursesRes, enrollments, studySessions, issueReports, adminRequests] =
-          await Promise.all([
-            adminService.getUsers({ page_size: 1 }),
-            adminService.getUsers({ role: 'student', page_size: 1 }),
-            adminService.getUsers({ role: 'lecturer', page_size: 1 }),
-            adminService.getUsers({ role: 'admin', page_size: 1 }),
-            adminService.getCourses({ page_size: 1 }),
-            adminService.getBulkEnrollments({ page_size: 1 }),
-            adminService.getStudySessions({ page_size: 1 }),
-            adminService.getIssueReports({ resolved: false }),
-            adminService.getAdminRequests({ status: 'pending' }),
-          ]);
+        const results = await Promise.allSettled([
+          adminService.getUsers({ page_size: 1 }),
+          adminService.getUsers({ role: 'student', page_size: 1 }),
+          adminService.getUsers({ role: 'lecturer', page_size: 1 }),
+          adminService.getUsers({ role: 'admin', page_size: 1 }),
+          adminService.getCourses({ page_size: 1 }),
+          adminService.getBulkEnrollments({ page_size: 1 }).catch(() => null),
+          adminService.getStudySessions({ page_size: 1 }).catch(() => null),
+          adminService.getIssueReports({ resolved: false }).catch(() => null),
+          adminService.getAdminRequests({ status: 'pending' }).catch(() => null),
+        ]);
 
         const count = (v: unknown): number => {
           type WithCount = { count?: number };
@@ -45,16 +44,20 @@ export default function AdminDashboardPage() {
           return 0;
         };
 
+        const getValue = (result: PromiseSettledResult<any>) => {
+          return result.status === 'fulfilled' ? result.value : null;
+        };
+
         setStats({
-          totalUsers: count(allUsers),
-          totalStudents: count(students),
-          totalLecturers: count(lecturers),
-          totalAdmins: count(admins),
-          totalCourses: count(coursesRes),
-          totalEnrollments: count(enrollments),
-          activeSessions: count(studySessions),
-          unresolvedReports: count(issueReports),
-          pendingAdminRequests: count(adminRequests),
+          totalUsers: count(getValue(results[0])),
+          totalStudents: count(getValue(results[1])),
+          totalLecturers: count(getValue(results[2])),
+          totalAdmins: count(getValue(results[3])),
+          totalCourses: count(getValue(results[4])),
+          totalEnrollments: count(getValue(results[5])),
+          activeSessions: count(getValue(results[6])),
+          unresolvedReports: count(getValue(results[7])),
+          pendingAdminRequests: count(getValue(results[8])),
         });
       } catch (err) {
         console.error("Failed to fetch stats:", err);
