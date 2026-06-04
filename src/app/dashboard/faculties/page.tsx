@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AddFacultyDialog } from "@/components/dashboard/dialogs/AddFacultyDialog";
 import adminService from "@/services/adminService";
 import type { Faculty } from "@/types";
 
@@ -19,28 +20,28 @@ export default function FacultiesPage() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchFaculties = async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      if (universityFilter !== "all") params.university = universityFilter;
+      const data = await adminService.getFaculties(params);
+      setFaculties(data.results || data);
+    } catch (err) {
+      console.error("Failed to fetch faculties:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    const fetchFaculties = async () => {
-      setLoading(true);
-      try {
-        const params: any = {};
-        if (search) params.search = search;
-        if (universityFilter !== "all") params.university = universityFilter;
-        const data = await adminService.getFaculties(params);
-        if (!mounted) return;
-        setFaculties(data.results || data);
-      } catch (err) {
-        console.error("Failed to fetch faculties:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
     fetchFaculties();
-    return () => {
-      mounted = false;
-    };
   }, [search, universityFilter]);
+
+  const handleFacultyAdded = (newFaculty: Faculty) => {
+    setFaculties((prev) => [newFaculty, ...prev]);
+  };
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">
@@ -49,7 +50,7 @@ export default function FacultiesPage() {
           <h1 className="text-2xl font-bold text-foreground">Faculties</h1>
           <p className="text-muted-foreground mt-1">Manage faculties within universities.</p>
         </div>
-        <Button className="gap-2"><Plus className="h-4 w-4" />Add Faculty</Button>
+        <AddFacultyDialog onFacultyAdded={handleFacultyAdded} />
       </div>
 
       <Card className="shadow-card">

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AddDepartmentDialog } from "@/components/dashboard/dialogs/AddDepartmentDialog";
 import adminService from "@/services/adminService";
 import type { Department } from "@/types";
 
@@ -19,28 +20,28 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchDepartments = async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      if (facultyFilter !== "all") params.university = facultyFilter;
+      const data = await adminService.getDepartments(params);
+      setDepartments(data.results || data);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    const fetchDepartments = async () => {
-      setLoading(true);
-      try {
-        const params: any = {};
-        if (search) params.search = search;
-        if (facultyFilter !== "all") params.university = facultyFilter;
-        const data = await adminService.getDepartments(params);
-        if (!mounted) return;
-        setDepartments(data.results || data);
-      } catch (err) {
-        console.error("Failed to fetch departments:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
     fetchDepartments();
-    return () => {
-      mounted = false;
-    };
   }, [search, facultyFilter]);
+
+  const handleDepartmentAdded = (newDepartment: Department) => {
+    setDepartments((prev) => [newDepartment, ...prev]);
+  };
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">
@@ -49,7 +50,7 @@ export default function DepartmentsPage() {
           <h1 className="text-2xl font-bold text-foreground">Departments</h1>
           <p className="text-muted-foreground mt-1">Manage departments within faculties.</p>
         </div>
-        <Button className="gap-2"><Plus className="h-4 w-4" />Add Department</Button>
+        <AddDepartmentDialog onDepartmentAdded={handleDepartmentAdded} />
       </div>
 
       <Card className="shadow-card">
