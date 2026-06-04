@@ -42,6 +42,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,9 +59,7 @@ export default function AdminUsersPage() {
         const data = await adminService.getUsers(params);
         if (!mounted) return;
         setUsers(data.results || data);
-        // store total count if available
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
+        setTotalCount(data.count || (data.results?.length || 0));
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch users:", err);
@@ -257,7 +256,7 @@ export default function AdminUsersPage() {
           {users.length > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                Showing {users.length} of {mockUsers.length} users
+                Showing {users.length} of {totalCount} users
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
