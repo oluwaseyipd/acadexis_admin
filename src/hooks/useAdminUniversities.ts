@@ -2,6 +2,12 @@ import { useState, useCallback } from 'react';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { useAdminApi, PaginatedResponse } from './useAdminApi';
 
+export interface Pagination {
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
+
 export interface University {
   id: string;
   name: string;
@@ -19,7 +25,7 @@ export interface University {
 export const useAdminUniversities = () => {
   const { get, post, patch, delete_, loading, error } = useAdminApi();
   const [universities, setUniversities] = useState<University[]>([]);
-  const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
+  const [pagination, setPagination] = useState<Pagination>({ count: 0, next: null, previous: null });
 
   const fetchUniversities = useCallback(
     async (filters: Record<string, any> = {}, page = 1) => {

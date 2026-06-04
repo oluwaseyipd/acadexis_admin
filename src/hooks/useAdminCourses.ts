@@ -19,10 +19,20 @@ export interface Course {
   updated_at: string;
 }
 
+export interface Pagination {
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
+
 export const useAdminCourses = () => {
   const { get, post, patch, delete_, loading, error } = useAdminApi();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
+  const [pagination, setPagination] = useState<Pagination>({
+    count: 0,
+    next: null,
+    previous: null,
+  });
 
   const fetchCourses = useCallback(
     async (filters: Record<string, any> = {}, page = 1) => {
