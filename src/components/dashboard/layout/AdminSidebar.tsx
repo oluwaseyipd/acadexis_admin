@@ -70,7 +70,12 @@ export default function AdminSidebar() {
       router.push("/auth/login");
     }
   };
-
+  const handleLinkClick = (hasChildren: boolean) => {
+    if (hasChildren) return;
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
   if (!mounted) {
     return (
       <aside className="fixed inset-y-0 left-0 z-50 flex flex-col justify-between border-r border-border bg-card py-4 w-64 lg:relative lg:translate-x-0">
@@ -114,6 +119,7 @@ export default function AdminSidebar() {
                   !sidebarOpen && "justify-center px-0 h-10 w-10 mx-auto"
                 )}
                 title={!sidebarOpen ? item.title : undefined}
+                onClick={() => handleLinkClick(!!item.children)}
               >
                 <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
                 {sidebarOpen && <span className="text-sm tracking-wide">{item.title}</span>}
@@ -132,6 +138,7 @@ export default function AdminSidebar() {
                           "flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
                           isChildActive && "text-primary font-semibold"
                         )}
+                        onClick={() => handleLinkClick(false)}
                       >
                         <child.icon className="h-3.5 w-3.5" />
                         <span>{child.title}</span>
