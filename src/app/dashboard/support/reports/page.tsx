@@ -9,13 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { IssueReport } from "@/types";
-
-const mockReports: IssueReport[] = [
-  { id: "1", user: "u1", userName: "John Student", title: "Cannot access course materials", description: "Getting 403 error when trying to access PDF files", severity: "high", resolved: false, created_at: "2025-06-01T10:00:00Z" },
-  { id: "2", user: "u2", userName: "Sarah Lecturer", title: "Quiz submission failed", description: "Students reported issues submitting quiz answers", severity: "critical", resolved: false, created_at: "2025-06-02T14:00:00Z" },
-  { id: "3", user: "u3", userName: "Mike User", title: "Login timeout issue", description: "Session expires too quickly", severity: "medium", resolved: true, created_at: "2025-05-28T09:00:00Z" },
-  { id: "4", user: "u4", userName: "Emily White", title: "Wrong grade displayed", description: "Grade showing incorrect percentage", severity: "low", resolved: false, created_at: "2025-06-03T11:00:00Z" },
-];
+import adminService from "@/services/adminService";
+import { toast } from "@/hooks/use-toast";
 
 const severityColors = {
   low: "bg-muted text-muted-foreground",
@@ -29,15 +24,37 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<IssueReport[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTimeout(() => {
-      let filtered = mockReports;
-      if (statusFilter === "resolved") filtered = filtered.filter((r) => r.resolved);
-      else if (statusFilter === "unresolved") filtered = filtered.filter((r) => !r.resolved);
-      setReports(filtered);
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const params: { resolved?: boolean } = {};
+      if (statusFilter === "resolved") params.resolved = true;
+      else if (statusFilter === "unresolved") params.resolved = false;
+
+      const data = await adminService.getIssueReports(params);
+      setReports(data || []);
+    } catch (err) {
+      console.error("Failed to fetch reports:", err);
+      toast.error("Failed to load reports");
+    } finally {
       setLoading(false);
-    }, 300);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
   }, [statusFilter]);
+
+  const handleResolve = async (id: string) => {
+    try {
+      await adminService.resolveIssueReport(id);
+      toast.success("Issue marked as resolved");
+      await fetchReports();
+    } catch (err) {
+      console.error("Failed to resolve issue:", err);
+      toast.error("Failed to resolve issue");
+    }
+  };
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">
@@ -95,7 +112,11 @@ export default function ReportsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Reported by {report.userName} on {new Date(report.created_at).toLocaleDateString()}</span>
                     <div className="flex gap-2">
-                      {!report.resolved && <Button size="sm" variant="outline"><Check className="h-4 w-4 mr-1" />Resolve</Button>}
+                      {!report.resolved && (
+                        <Button size="sm" variant="outline" onClick={() => handleResolve(report.id)}>
+                          <Check className="h-4 w-4 mr-1" />Resolve
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" className="text-destructive"><X className="h-4 w-4" /></Button>
                     </div>
                   </div>

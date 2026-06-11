@@ -9,13 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AdminRequest } from "@/types";
-
-const mockRequests: AdminRequest[] = [
-  { id: "1", user: "u1", userName: "John Student", userEmail: "john@uni.edu", reason: "Need admin access to manage course content", document_proof: null, status: "pending", created_at: "2025-06-01T10:00:00Z" },
-  { id: "2", user: "u2", userName: "Sarah Lecturer", userEmail: "sarah@uni.edu", reason: "Requesting admin privileges to help manage department students", document_proof: null, status: "pending", created_at: "2025-06-02T14:00:00Z" },
-  { id: "3", user: "u3", userName: "Mike User", userEmail: "mike@uni.edu", reason: "Would like to help moderate the platform", document_proof: null, status: "approved", created_at: "2025-05-20T09:00:00Z" },
-  { id: "4", user: "u4", userName: "Emily White", userEmail: "emily@uni.edu", reason: "Need admin access for content moderation", document_proof: null, status: "rejected", created_at: "2025-05-15T11:00:00Z" },
-];
+import adminService from "@/services/adminService";
+import { toast } from "@/hooks/use-toast";
 
 const statusColors = {
   pending: "bg-warning/10 text-warning border-warning/20",
@@ -28,14 +23,48 @@ export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTimeout(() => {
-      let filtered = mockRequests;
-      if (statusFilter !== "all") filtered = filtered.filter((r) => r.status === statusFilter);
-      setRequests(filtered);
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const params: { status?: 'pending' | 'approved' | 'rejected' } = {};
+      if (statusFilter !== "all") {
+        params.status = statusFilter as 'pending' | 'approved' | 'rejected';
+      }
+      const data = await adminService.getAdminRequests(params);
+      setRequests(data || []);
+    } catch (err) {
+      console.error("Failed to fetch admin requests:", err);
+      toast.error("Failed to load requests");
+    } finally {
       setLoading(false);
-    }, 300);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
   }, [statusFilter]);
+
+  const handleApprove = async (id: string) => {
+    try {
+      await adminService.approveAdminRequest(id);
+      toast.success("Request approved successfully");
+      await fetchRequests();
+    } catch (err) {
+      console.error("Failed to approve request:", err);
+      toast.error("Failed to approve request");
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await adminService.rejectAdminRequest(id);
+      toast.success("Request rejected successfully");
+      await fetchRequests();
+    } catch (err) {
+      console.error("Failed to reject request:", err);
+      toast.error("Failed to reject request");
+    }
+  };
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">
@@ -99,8 +128,12 @@ export default function AdminRequestsPage() {
                     <span className="text-xs text-muted-foreground">Requested on {new Date(request.created_at).toLocaleDateString()}</span>
                     {request.status === "pending" && (
                       <div className="flex gap-2">
-                        <Button size="sm" className="bg-success hover:bg-success/90"><Check className="h-4 w-4 mr-1" />Approve</Button>
-                        <Button size="sm" variant="destructive"><X className="h-4 w-4 mr-1" />Reject</Button>
+                        <Button size="sm" className="bg-success hover:bg-success/90" onClick={() => handleApprove(request.id)}>
+                          <Check className="h-4 w-4 mr-1" />Approve
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleReject(request.id)}>
+                          <X className="h-4 w-4 mr-1" />Reject
+                        </Button>
                       </div>
                     )}
                   </div>

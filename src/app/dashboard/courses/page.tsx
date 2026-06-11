@@ -33,12 +33,15 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import adminService from "@/services/adminService";
 import type { AdminCourse } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 export default function AdminCoursesPage() {
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -63,7 +66,19 @@ export default function AdminCoursesPage() {
     return () => {
       mounted = false;
     };
-  }, [search, levelFilter]);
+  }, [search, levelFilter, refreshTrigger]);
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this course?")) return;
+    try {
+      await adminService.deleteCourse(id);
+      toast.success("Course deleted successfully");
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to delete course:", err);
+      toast.error("Failed to delete course");
+    }
+  };
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">
@@ -161,7 +176,7 @@ export default function AdminCoursesPage() {
                           Edit Course
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCourse(course.id)}>
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Course
                         </DropdownMenuItem>

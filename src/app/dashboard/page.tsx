@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-8 font-sans">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Welcome back, Admin 👋</h1>
+        <h1 className="text-2xl font-bold text-foreground">Overview</h1>
         <p className="text-muted-foreground mt-1">
           Platform overview and management dashboard.
         </p>

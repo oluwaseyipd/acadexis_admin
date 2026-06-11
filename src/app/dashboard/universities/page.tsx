@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from "@/components/ui/skeleton";
 import adminService from "@/services/adminService";
 import type { University } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 const universitySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -25,13 +26,12 @@ const universitySchema = z.object({
 
 type UniversityForm = z.infer<typeof universitySchema>;
 
-
-
 export default function UniversitiesPage() {
   const [search, setSearch] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const form = useForm<UniversityForm>({
     resolver: zodResolver(universitySchema),
@@ -59,18 +59,30 @@ export default function UniversitiesPage() {
     return () => {
       mounted = false;
     };
-  }, [search]);
+  }, [search, refreshTrigger]);
 
   const onSubmit = async (data: UniversityForm) => {
     try {
       await adminService.createUniversity(data);
       setOpen(false);
       form.reset();
-      // refresh list
-      const res = await adminService.getUniversities({ search: "" });
-      setUniversities(res.results || res);
+      toast.success("University created successfully");
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       console.error("Failed to create university:", err);
+      toast.error("Failed to create university");
+    }
+  };
+
+  const handleDeleteUniversity = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this university?")) return;
+    try {
+      await adminService.deleteUniversity(id);
+      toast.success("University deleted successfully");
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to delete university:", err);
+      toast.error("Failed to delete university");
     }
   };
 
@@ -165,7 +177,9 @@ export default function UniversitiesPage() {
                         <DropdownMenuItem><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                         <DropdownMenuItem><GraduationCap className="h-4 w-4 mr-2" />View Faculties</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUniversity(uni.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

@@ -20,8 +20,7 @@ interface AuthUser {
 
 export const useAuth = () => {
   const router = useRouter();
-  const { setUser } = useAppStore();
-  const [user, setLocalUser] = useState<AuthUser | null>(null);
+  const { user, setUser } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +41,6 @@ export const useAuth = () => {
 
       // Store user
       setUser(data.user);
-      setLocalUser(data.user);
 
       // Verify staff status
       if (!data.user.is_staff) {
@@ -79,7 +77,6 @@ export const useAuth = () => {
         localStorage.removeItem('admin_user');
       }
       setUser(null);
-      setLocalUser(null);
       setLoading(false);
       await router.push('/auth/login');
     }
@@ -89,7 +86,6 @@ export const useAuth = () => {
     try {
       const { data } = await apiClient.get(API_ENDPOINTS.ADMIN.USERS + 'me/');
       setUser(data);
-      setLocalUser(data);
       if (typeof window !== 'undefined') {
         localStorage.setItem('admin_user', JSON.stringify(data));
       }

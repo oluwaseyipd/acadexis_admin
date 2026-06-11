@@ -9,28 +9,40 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ContactMessage } from "@/types";
-
-const mockContacts: ContactMessage[] = [
-  { id: "1", user: "u1", userName: "John Student", subject: "Question about enrollment", body: "How do I enroll in multiple courses?", email: "john@uni.edu", created_at: "2025-06-01T10:00:00Z" },
-  { id: "2", user: "u2", userName: "Sarah Lecturer", subject: "Material upload issue", body: "Cannot upload PDF files larger than 10MB", email: "sarah@uni.edu", created_at: "2025-06-02T14:00:00Z" },
-  { id: "3", user: "u3", userName: "Mike User", subject: "Feature request", body: "Would be great to have a dark mode for the mobile app", email: "mike@uni.edu", created_at: "2025-05-28T09:00:00Z" },
-];
+import adminService from "@/services/adminService";
+import { toast } from "@/hooks/use-toast";
 
 export default function ContactsPage() {
   const [search, setSearch] = useState("");
+  const [allContacts, setAllContacts] = useState<ContactMessage[]>([]);
   const [contacts, setContacts] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      const filtered = mockContacts.filter((c) =>
-        c.subject.toLowerCase().includes(search.toLowerCase()) ||
-        (c.userName?.toLowerCase().includes(search.toLowerCase()) ?? false)
-      );
-      setContacts(filtered);
-      setLoading(false);
-    }, 300);
-  }, [search]);
+    const fetchContacts = async () => {
+      setLoading(true);
+      try {
+        const data = await adminService.getContactMessages();
+        setAllContacts(data || []);
+      } catch (err) {
+        console.error("Failed to fetch contact messages:", err);
+        toast.error("Failed to load messages");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  useEffect(() => {
+    const filtered = allContacts.filter((c) =>
+      c.subject.toLowerCase().includes(search.toLowerCase()) ||
+      (c.userName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+      c.body.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase())
+    );
+    setContacts(filtered);
+  }, [search, allContacts]);
 
   return (
     <div className="max-w-[1500px] mx-auto px-8 py-8 flex flex-col gap-6 font-sans">

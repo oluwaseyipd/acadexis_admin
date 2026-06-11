@@ -12,12 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddDepartmentDialog } from "@/components/dashboard/dialogs/AddDepartmentDialog";
 import adminService from "@/services/adminService";
-import type { Department } from "@/types";
+import type { Department, Faculty } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 export default function DepartmentsPage() {
   const [search, setSearch] = useState("");
   const [facultyFilter, setFacultyFilter] = useState<string>("all");
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDepartments = async () => {
@@ -25,7 +27,7 @@ export default function DepartmentsPage() {
     try {
       const params: any = {};
       if (search) params.search = search;
-      if (facultyFilter !== "all") params.university = facultyFilter;
+      if (facultyFilter !== "all") params.faculty = facultyFilter;
       const data = await adminService.getDepartments(params);
       setDepartments(data.results || data);
     } catch (err) {
@@ -39,8 +41,32 @@ export default function DepartmentsPage() {
     fetchDepartments();
   }, [search, facultyFilter]);
 
+  useEffect(() => {
+    const fetchFacs = async () => {
+      try {
+        const data = await adminService.getFaculties();
+        setFaculties(data.results || data || []);
+      } catch (err) {
+        console.error("Failed to fetch faculties:", err);
+      }
+    };
+    fetchFacs();
+  }, []);
+
   const handleDepartmentAdded = (newDepartment: Department) => {
     setDepartments((prev) => [newDepartment, ...prev]);
+  };
+
+  const handleDeleteDepartment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this department?")) return;
+    try {
+      await adminService.deleteDepartment(id);
+      toast.success("Department deleted successfully");
+      await fetchDepartments();
+    } catch (err) {
+      console.error("Failed to delete department:", err);
+      toast.error("Failed to delete department");
+    }
   };
 
   return (
@@ -66,8 +92,11 @@ export default function DepartmentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Faculties</SelectItem>
-                <SelectItem value="f1">Faculty of Science</SelectItem>
-                <SelectItem value="f2">Faculty of Engineering</SelectItem>
+                {faculties.map((fac) => (
+                  <SelectItem key={fac.id} value={fac.id}>
+                    {fac.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -105,7 +134,9 @@ export default function DepartmentsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteDepartment(dept.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

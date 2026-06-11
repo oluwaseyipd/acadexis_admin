@@ -12,12 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddFacultyDialog } from "@/components/dashboard/dialogs/AddFacultyDialog";
 import adminService from "@/services/adminService";
-import type { Faculty } from "@/types";
+import type { Faculty, University } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 export default function FacultiesPage() {
   const [search, setSearch] = useState("");
   const [universityFilter, setUniversityFilter] = useState<string>("all");
   const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchFaculties = async () => {
@@ -39,8 +41,32 @@ export default function FacultiesPage() {
     fetchFaculties();
   }, [search, universityFilter]);
 
+  useEffect(() => {
+    const fetchUnis = async () => {
+      try {
+        const data = await adminService.getUniversities();
+        setUniversities(data.results || data || []);
+      } catch (err) {
+        console.error("Failed to fetch universities:", err);
+      }
+    };
+    fetchUnis();
+  }, []);
+
   const handleFacultyAdded = (newFaculty: Faculty) => {
     setFaculties((prev) => [newFaculty, ...prev]);
+  };
+
+  const handleDeleteFaculty = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this faculty?")) return;
+    try {
+      await adminService.deleteFaculty(id);
+      toast.success("Faculty deleted successfully");
+      await fetchFaculties();
+    } catch (err) {
+      console.error("Failed to delete faculty:", err);
+      toast.error("Failed to delete faculty");
+    }
   };
 
   return (
@@ -66,8 +92,11 @@ export default function FacultiesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Universities</SelectItem>
-                <SelectItem value="u1">University of Cape Town</SelectItem>
-                <SelectItem value="u2">Stellenbosch University</SelectItem>
+                {universities.map((uni) => (
+                  <SelectItem key={uni.id} value={uni.id}>
+                    {uni.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -103,7 +132,9 @@ export default function FacultiesPage() {
                         <DropdownMenuItem><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                         <DropdownMenuItem><Folder className="h-4 w-4 mr-2" />View Departments</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFaculty(faculty.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

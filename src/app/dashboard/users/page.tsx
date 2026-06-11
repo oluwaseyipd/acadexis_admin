@@ -35,6 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import adminService from "@/services/adminService";
 import type { AdminUser, UserFilters } from "@/types";
+import { toast } from "@/hooks/use-toast";
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
@@ -44,6 +45,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -72,7 +75,34 @@ export default function AdminUsersPage() {
     return () => {
       mounted = false;
     };
-  }, [search, roleFilter, statusFilter, page]);
+  }, [search, roleFilter, statusFilter, page, refreshTrigger]);
+
+  const handleUpdateRole = async (userId: string, newRole: "student" | "lecturer" | "admin") => {
+    try {
+      await adminService.updateUser(userId, { role: newRole });
+      toast.success(`User role updated to ${newRole}`);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to update user role:", err);
+      toast.error("Failed to update user role");
+    }
+  };
+
+  const handleToggleActive = async (userId: string, currentActive: boolean) => {
+    try {
+      if (currentActive) {
+        await adminService.deactivateUser(userId);
+        toast.success("User deactivated successfully");
+      } else {
+        await adminService.activateUser(userId);
+        toast.success("User activated successfully");
+      }
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to toggle user status:", err);
+      toast.error("Failed to update user status");
+    }
+  };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -229,21 +259,24 @@ export default function AdminUsersPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateRole(user.id, "student")}>
                         <Shield className="h-4 w-4 mr-2" />
                         Set as Student
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateRole(user.id, "lecturer")}>
                         <ShieldCheck className="h-4 w-4 mr-2" />
                         Set as Lecturer
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateRole(user.id, "admin")}>
                         <ShieldAlert className="h-4 w-4 mr-2" />
                         Set as Admin
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        Deactivate User
+                      <DropdownMenuItem 
+                        className={user.is_active ? "text-destructive" : "text-success"}
+                        onClick={() => handleToggleActive(user.id, user.is_active)}
+                      >
+                        {user.is_active ? "Deactivate User" : "Activate User"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
