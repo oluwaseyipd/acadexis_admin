@@ -166,7 +166,7 @@ export default function FacultiesPage() {
                     </DropdownMenu>
                   </div>
                   <h3 className="font-semibold text-foreground mb-1">{faculty.name}</h3>
-                  <Badge variant="secondary">{faculty.universityName}</Badge>
+                  <Badge variant="secondary">{faculty.university_name}</Badge>
                 </motion.div>
               ))}
             </div>

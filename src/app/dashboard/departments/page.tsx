@@ -169,7 +169,7 @@ export default function DepartmentsPage() {
                     </DropdownMenu>
                   </div>
                   <h3 className="font-semibold text-foreground mb-1">{dept.name}</h3>
-                  <Badge variant="secondary">{dept.facultyName}</Badge>
+                  <Badge variant="secondary">{dept.faculty_name}</Badge>
                 </motion.div>
               ))}
             </div>

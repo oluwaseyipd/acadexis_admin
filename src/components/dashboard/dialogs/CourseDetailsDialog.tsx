@@ -72,7 +72,7 @@ export function CourseDetailsDialog({ open, onOpenChange, course }: CourseDetail
           </div>
           <DialogTitle className="text-xl font-bold truncate mt-2">{course.title}</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground truncate">
-            {course.departmentName || "No Department"} Department
+            {course.department_name || "No Department"} Department
           </DialogDescription>
         </DialogHeader>
 
@@ -132,7 +132,7 @@ export function CourseDetailsDialog({ open, onOpenChange, course }: CourseDetail
                     <Label className="text-muted-foreground text-xs">Lecturer</Label>
                     <p className="text-sm font-medium text-foreground flex items-center gap-1.5 mt-0.5">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      {course.lecturerName || "Not Assigned"}
+                      {course.lecturer_name || "Not Assigned"}
                     </p>
                   </div>
 

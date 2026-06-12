@@ -64,7 +64,7 @@ export function DepartmentDetailsDialog({ open, onOpenChange, department }: Depa
               Affiliated Faculty
             </Label>
             <p className="text-sm font-medium text-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
-              {department.facultyName || "No affiliated faculty."}
+              {department.faculty_name || "No affiliated faculty."}
             </p>
           </div>
 

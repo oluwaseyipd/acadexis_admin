@@ -100,7 +100,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
             <Label className="text-muted-foreground">University</Label>
             <p className="text-foreground flex items-center gap-1.5">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              {user.universityName || "None"}
+              {user.university_name || "None"}
             </p>
           </div>
 
@@ -121,12 +121,12 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
             </div>
           )}
 
-          {user.profile?.departmentName && (
+          {user.profile?.department_name && (
             <div className="space-y-1 col-span-2">
               <Label className="text-muted-foreground">Department</Label>
               <p className="text-foreground flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
-                {user.profile.departmentName}
+                {user.profile.department_name}
               </p>
             </div>
           )}

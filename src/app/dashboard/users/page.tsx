@@ -263,7 +263,7 @@ export default function AdminUsersPage() {
                   <div className="hidden md:flex flex-col items-center min-w-[120px]">
                     <span className="text-xs text-muted-foreground">University</span>
                     <span className="text-sm text-foreground truncate max-w-[120px]">
-                      {user.universityName || "—"}
+                      {user.university_name || "—"}
                     </span>
                   </div>
                   <div className="hidden lg:block">{getRoleBadge(user.role)}</div>

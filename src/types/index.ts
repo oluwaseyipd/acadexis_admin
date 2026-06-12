@@ -7,7 +7,7 @@ export interface AdminUser {
   role: "student" | "lecturer" | "admin";
   name?: string;
   university: string | null;
-  universityName: string | null;
+  university_name: string | null;
   is_active: boolean;
   is_staff: boolean;
   date_joined: string;
@@ -21,7 +21,7 @@ export interface AdminUserProfile {
   identification_number: string;
   level: string;
   department: string | null;
-  departmentName: string | null;
+  department_name: string | null;
   avatar: string | null;
 }
 
@@ -32,9 +32,9 @@ export interface AdminCourse {
   code: string;
   description: string;
   department: string | null;
-  departmentName?: string;
+  department_name?: string;
   lecturer: string | null;
-  lecturerName?: string;
+  lecturer_name?: string;
   thumbnail: string | null;
   level: string;
   lecturer_remark: string;
@@ -152,7 +152,7 @@ export interface Faculty {
   id: string;
   name: string;
   university: string;
-  universityName?: string;
+  university_name?: string;
   created_at?: string;
 }
 
@@ -161,7 +161,7 @@ export interface Department {
   name: string;
   code: string;
   faculty: string;
-  facultyName?: string;
+  faculty_name?: string;
   created_at?: string;
 }
 
