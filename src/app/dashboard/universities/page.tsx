@@ -48,8 +48,11 @@ export default function UniversitiesPage() {
         const data = await adminService.getUniversities(params);
         if (!mounted) return;
         setUniversities(data.results || data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch universities:", err);
+        if (!mounted) return;
+        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load universities";
+        toast.error(msg);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -68,9 +71,10 @@ export default function UniversitiesPage() {
       form.reset();
       toast.success("University created successfully");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create university:", err);
-      toast.error("Failed to create university");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to create university";
+      toast.error(msg);
     }
   };
 
@@ -80,9 +84,10 @@ export default function UniversitiesPage() {
       await adminService.deleteUniversity(id);
       toast.success("University deleted successfully");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete university:", err);
-      toast.error("Failed to delete university");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to delete university";
+      toast.error(msg);
     }
   };
 

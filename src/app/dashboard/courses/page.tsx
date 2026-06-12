@@ -55,8 +55,11 @@ export default function AdminCoursesPage() {
         const data = await adminService.getCourses(params);
         if (!mounted) return;
         setCourses(data.results || data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch courses:", err);
+        if (!mounted) return;
+        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load courses";
+        toast.error(msg);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -74,9 +77,10 @@ export default function AdminCoursesPage() {
       await adminService.deleteCourse(id);
       toast.success("Course deleted successfully");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete course:", err);
-      toast.error("Failed to delete course");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to delete course";
+      toast.error(msg);
     }
   };
 

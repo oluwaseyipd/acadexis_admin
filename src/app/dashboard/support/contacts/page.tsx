@@ -24,9 +24,10 @@ export default function ContactsPage() {
       try {
         const data = await adminService.getContactMessages();
         setAllContacts(data || []);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch contact messages:", err);
-        toast.error("Failed to load messages");
+        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load messages";
+        toast.error(msg);
       } finally {
         setLoading(false);
       }

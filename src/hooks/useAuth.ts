@@ -31,6 +31,13 @@ export const useAuth = () => {
     try {
       const { data } = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
 
+      // Verify staff status BEFORE storing tokens or user state
+      // This is crucial to avoid auto-redirects/logins for unauthorized users
+      const isStaff = data?.user?.is_staff || data?.user?.role === 'admin' || data?.user?.role === 'lecturer';
+      if (!isStaff) {
+        throw new Error('You do not have admin access.');
+      }
+
       // Store tokens
       if (typeof window !== 'undefined') {
         localStorage.setItem('access_token', data.access);
@@ -42,26 +49,30 @@ export const useAuth = () => {
       // Store user
       setUser(data.user);
 
-      // Verify staff status
-      if (!data.user.is_staff) {
-        throw new Error('You do not have admin access.');
-      }
-
       // Redirect to admin dashboard
-      await router.push('/dashboard');
+      router.push('/dashboard');
 
       return { success: true };
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.detail ||
         err.response?.data?.non_field_errors?.[0] ||
+        err.message ||
         'Login failed. Please check your credentials.';
       setError(errorMsg);
+
+      // Clear any partially set tokens/user states to keep state clean on failure
+      clearAuthToken();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_user');
+      }
+      setUser(null);
+
       return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, setUser]);
 
   const logout = useCallback(async () => {
     setLoading(true);

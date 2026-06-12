@@ -32,9 +32,10 @@ export default function AdminRequestsPage() {
       }
       const data = await adminService.getAdminRequests(params);
       setRequests(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch admin requests:", err);
-      toast.error("Failed to load requests");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load requests";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -49,9 +50,10 @@ export default function AdminRequestsPage() {
       await adminService.approveAdminRequest(id);
       toast.success("Request approved successfully");
       await fetchRequests();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to approve request:", err);
-      toast.error("Failed to approve request");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to approve request";
+      toast.error(msg);
     }
   };
 
@@ -60,9 +62,10 @@ export default function AdminRequestsPage() {
       await adminService.rejectAdminRequest(id);
       toast.success("Request rejected successfully");
       await fetchRequests();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to reject request:", err);
-      toast.error("Failed to reject request");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to reject request";
+      toast.error(msg);
     }
   };
 

@@ -33,9 +33,10 @@ export default function ReportsPage() {
 
       const data = await adminService.getIssueReports(params);
       setReports(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch reports:", err);
-      toast.error("Failed to load reports");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load reports";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -50,9 +51,10 @@ export default function ReportsPage() {
       await adminService.resolveIssueReport(id);
       toast.success("Issue marked as resolved");
       await fetchReports();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to resolve issue:", err);
-      toast.error("Failed to resolve issue");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to resolve issue";
+      toast.error(msg);
     }
   };
 

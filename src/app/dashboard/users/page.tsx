@@ -64,9 +64,11 @@ export default function AdminUsersPage() {
         setUsers(data.results || data);
         setTotalCount(data.count || (data.results?.length || 0));
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch users:", err);
         if (!mounted) return;
+        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load users";
+        toast.error(msg);
         setLoading(false);
       }
     };
@@ -82,9 +84,10 @@ export default function AdminUsersPage() {
       await adminService.updateUser(userId, { role: newRole });
       toast.success(`User role updated to ${newRole}`);
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update user role:", err);
-      toast.error("Failed to update user role");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to update user role";
+      toast.error(msg);
     }
   };
 
@@ -98,9 +101,10 @@ export default function AdminUsersPage() {
         toast.success("User activated successfully");
       }
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to toggle user status:", err);
-      toast.error("Failed to update user status");
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to update user status";
+      toast.error(msg);
     }
   };
 
