@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import adminService from "@/services/adminService";
@@ -12,36 +12,42 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, setUser, setLoading, sidebarOpen, setSidebarOpen } = useAppStore();
-  const tokenValid = typeof window !== "undefined" && adminService.isAuthenticated();
+  const { isAuthenticated, setUser, sidebarOpen, setSidebarOpen } = useAppStore();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      if (!isAuthenticated && !tokenValid) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
+
+      if (!token || !cachedUser) {
+        // Clear state and redirect to login
+        setUser(null);
         router.push("/auth/login");
         return;
       }
-      if (!isAuthenticated && tokenValid) {
-        const currentUser = await adminService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
+
+      if (!isAuthenticated) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          setUser(parsedUser);
+        } catch (e) {
+          setUser(null);
+          router.push("/auth/login");
+          return;
         }
       }
       setLoading(false);
     };
     initializeAuth();
-  }, [isAuthenticated, router, setUser, setLoading, tokenValid]);
+  }, [isAuthenticated, router, setUser]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
-  }
-
-  if (!isAuthenticated && !tokenValid) {
-    return null;
   }
 
   return (

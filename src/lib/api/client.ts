@@ -29,8 +29,10 @@ const createClient = (): AxiosInstance => {
     (response) => response,
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const isLoginRequest = originalRequest.url?.includes(API_ENDPOINTS.AUTH.LOGIN);
+      const isRefreshRequest = originalRequest.url?.includes(API_ENDPOINTS.AUTH.REFRESH);
 
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest && !isRefreshRequest) {
         originalRequest._retry = true;
 
         try {
@@ -54,6 +56,8 @@ const createClient = (): AxiosInstance => {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
+            localStorage.removeItem('admin_user');
+            localStorage.removeItem('acadexis-admin-storage');
             window.location.href = '/auth/login';
           }
           return Promise.reject(refreshError);
