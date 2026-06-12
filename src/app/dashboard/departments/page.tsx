@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Folder, Search, MoreVertical, Plus, Edit, Trash2 } from "lucide-react";
+import { Folder, Search, MoreVertical, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AddDepartmentDialog } from "@/components/dashboard/dialogs/AddDepartmentDialog";
 import adminService from "@/services/adminService";
 import type { Department, Faculty } from "@/types";
 import { toast } from "@/hooks/use-toast";
+import { DepartmentDetailsDialog } from "@/components/dashboard/dialogs/DepartmentDetailsDialog";
+import { DepartmentFormDialog } from "@/components/dashboard/dialogs/DepartmentFormDialog";
+import { DeleteConfirmationDialog } from "@/components/dashboard/dialogs/DeleteConfirmationDialog";
 
 export default function DepartmentsPage() {
   const [search, setSearch] = useState("");
@@ -21,25 +23,38 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const fetchDepartments = async () => {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (search) params.search = search;
-      if (facultyFilter !== "all") params.faculty = facultyFilter;
-      const data = await adminService.getDepartments(params);
-      setDepartments(data.results || data);
-    } catch (err) {
-      console.error("Failed to fetch departments:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Dialog States
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
-    fetchDepartments();
-  }, [search, facultyFilter]);
+    const fetchDepartments = async () => {
+      setLoading(true);
+      try {
+        const params: Record<string, string | number | boolean> = {};
+        if (search) params.search = search;
+        if (facultyFilter !== "all") params.faculty = facultyFilter;
+        const data = await adminService.getDepartments(params);
+        setDepartments(data.results || data);
+      } catch (err: unknown) {
+        console.error("Failed to fetch departments:", err);
+        const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+        const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to load departments";
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchDepartments();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [search, facultyFilter, refreshTrigger]);
 
   useEffect(() => {
     const fetchFacs = async () => {
@@ -50,22 +65,22 @@ export default function DepartmentsPage() {
         console.error("Failed to fetch faculties:", err);
       }
     };
-    fetchFacs();
+    const timer = setTimeout(() => {
+      fetchFacs();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleDepartmentAdded = (newDepartment: Department) => {
-    setDepartments((prev) => [newDepartment, ...prev]);
-  };
-
   const handleDeleteDepartment = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this department?")) return;
     try {
       await adminService.deleteDepartment(id);
       toast.success("Department deleted successfully");
-      await fetchDepartments();
-    } catch (err) {
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: unknown) {
       console.error("Failed to delete department:", err);
-      toast.error("Failed to delete department");
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to delete department";
+      toast.error(msg);
     }
   };
 
@@ -76,7 +91,10 @@ export default function DepartmentsPage() {
           <h1 className="text-2xl font-bold text-foreground">Departments</h1>
           <p className="text-muted-foreground mt-1">Manage departments within faculties.</p>
         </div>
-        <AddDepartmentDialog onDepartmentAdded={handleDepartmentAdded} />
+        <Button className="gap-2" onClick={() => { setSelectedDepartment(null); setFormOpen(true); }}>
+          <Plus className="h-4 w-4" />
+          Add Department
+        </Button>
       </div>
 
       <Card className="shadow-card">
@@ -115,6 +133,11 @@ export default function DepartmentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
             </div>
+          ) : departments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg bg-card/30">
+              <Folder className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No departments found.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {departments.map((dept, i) => (
@@ -122,8 +145,8 @@ export default function DepartmentsPage() {
                   className="p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                        <Folder className="h-5 w-5 text-warning" />
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Folder className="h-5 w-5 text-primary" />
                       </div>
                       <Badge variant="outline">{dept.code}</Badge>
                     </div>
@@ -132,9 +155,14 @@ export default function DepartmentsPage() {
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedDepartment(dept); setDetailsOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedDepartment(dept); setFormOpen(true); }}>
+                          <Edit className="h-4 w-4 mr-2" />Edit
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteDepartment(dept.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => { setSelectedDepartment(dept); setDeleteOpen(true); }}>
                           <Trash2 className="h-4 w-4 mr-2" />Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -148,6 +176,33 @@ export default function DepartmentsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DepartmentDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        department={selectedDepartment}
+      />
+
+      <DepartmentFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        department={selectedDepartment}
+        onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={async () => {
+          if (selectedDepartment) {
+            await handleDeleteDepartment(selectedDepartment.id);
+          }
+        }}
+        title="Delete Department"
+        description="Are you sure you want to delete this department? All associated courses and student enrollments will be deleted. This action cannot be undone."
+        itemName={selectedDepartment?.name}
+        confirmText="Delete"
+      />
     </div>
   );
 }

@@ -13,7 +13,12 @@ import {
   Mail,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  Edit,
 } from "lucide-react";
+import { UserDetailsDialog } from "@/components/dashboard/dialogs/UserDetailsDialog";
+import { EditUserDialog } from "@/components/dashboard/dialogs/EditUserDialog";
+import { DeleteConfirmationDialog } from "@/components/dashboard/dialogs/DeleteConfirmationDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import adminService from "@/services/adminService";
-import type { AdminUser, UserFilters } from "@/types";
+import type { AdminUser } from "@/types";
 import { toast } from "@/hooks/use-toast";
 
 export default function AdminUsersPage() {
@@ -48,12 +53,17 @@ export default function AdminUsersPage() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const params: any = { page };
+        const params: Record<string, string | number | boolean> = { page };
         if (search) params.search = search;
         if (roleFilter !== "all") params.role = roleFilter;
         if (statusFilter === "active") params.is_active = true;
@@ -64,18 +74,23 @@ export default function AdminUsersPage() {
         setUsers(data.results || data);
         setTotalCount(data.count || (data.results?.length || 0));
         setLoading(false);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to fetch users:", err);
         if (!mounted) return;
-        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load users";
+        const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+        const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to load users";
         toast.error(msg);
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 0);
+    
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
   }, [search, roleFilter, statusFilter, page, refreshTrigger]);
 
@@ -84,9 +99,10 @@ export default function AdminUsersPage() {
       await adminService.updateUser(userId, { role: newRole });
       toast.success(`User role updated to ${newRole}`);
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to update user role:", err);
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to update user role";
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to update user role";
       toast.error(msg);
     }
   };
@@ -101,9 +117,10 @@ export default function AdminUsersPage() {
         toast.success("User activated successfully");
       }
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to toggle user status:", err);
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to update user status";
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to update user status";
       toast.error(msg);
     }
   };
@@ -263,6 +280,15 @@ export default function AdminUsersPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => { setSelectedUser(user); setDetailsOpen(true); }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedUser(user); setEditOpen(true); }}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Account
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleUpdateRole(user.id, "student")}>
                         <Shield className="h-4 w-4 mr-2" />
                         Set as Student
@@ -278,7 +304,14 @@ export default function AdminUsersPage() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         className={user.is_active ? "text-destructive" : "text-success"}
-                        onClick={() => handleToggleActive(user.id, user.is_active)}
+                        onClick={() => {
+                          if (user.is_active) {
+                            setSelectedUser(user);
+                            setDeactivateOpen(true);
+                          } else {
+                            handleToggleActive(user.id, false);
+                          }
+                        }}
                       >
                         {user.is_active ? "Deactivate User" : "Activate User"}
                       </DropdownMenuItem>
@@ -308,6 +341,33 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <UserDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        user={selectedUser}
+      />
+
+      <EditUserDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        user={selectedUser}
+        onUserUpdated={() => setRefreshTrigger((prev) => prev + 1)}
+      />
+
+      <DeleteConfirmationDialog
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+        onConfirm={async () => {
+          if (selectedUser) {
+            await handleToggleActive(selectedUser.id, true);
+          }
+        }}
+        title="Deactivate User Account"
+        description="Are you sure you want to deactivate this user account? The user will lose access to the system until reactivated."
+        itemName={selectedUser?.email}
+        confirmText="Deactivate"
+      />
     </div>
   );
 }

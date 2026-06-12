@@ -11,7 +11,11 @@ import {
   FileText,
   Edit,
   Trash2,
+  Eye,
 } from "lucide-react";
+import { CourseDetailsDialog } from "@/components/dashboard/dialogs/CourseDetailsDialog";
+import { CourseFormDialog } from "@/components/dashboard/dialogs/CourseFormDialog";
+import { DeleteConfirmationDialog } from "@/components/dashboard/dialogs/DeleteConfirmationDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,43 +47,52 @@ export default function AdminCoursesPage() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [selectedCourse, setSelectedCourse] = useState<AdminCourse | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        const params: any = {};
+        const params: Record<string, string | number | boolean> = {};
         if (search) params.search = search;
         if (levelFilter !== "all") params.level = levelFilter;
 
         const data = await adminService.getCourses(params);
         if (!mounted) return;
         setCourses(data.results || data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to fetch courses:", err);
         if (!mounted) return;
-        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load courses";
+        const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+        const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to load courses";
         toast.error(msg);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    fetchCourses();
+    const timer = setTimeout(() => {
+      fetchCourses();
+    }, 0);
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
   }, [search, levelFilter, refreshTrigger]);
 
   const handleDeleteCourse = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
     try {
       await adminService.deleteCourse(id);
       toast.success("Course deleted successfully");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to delete course:", err);
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to delete course";
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to delete course";
       toast.error(msg);
     }
   };
@@ -94,7 +107,7 @@ export default function AdminCoursesPage() {
             Manage all courses on the platform.
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => { setSelectedCourse(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4" />
           Add Course
         </Button>
@@ -174,13 +187,17 @@ export default function AdminCoursesPage() {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setSelectedCourse(course); setDetailsOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedCourse(course); setFormOpen(true); }}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Course
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCourse(course.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => { setSelectedCourse(course); setDeleteOpen(true); }}>
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Course
                         </DropdownMenuItem>
@@ -206,6 +223,33 @@ export default function AdminCoursesPage() {
           )}
         </CardContent>
       </Card>
+
+      <CourseDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        course={selectedCourse}
+      />
+
+      <CourseFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        course={selectedCourse}
+        onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={async () => {
+          if (selectedCourse) {
+            await handleDeleteCourse(selectedCourse.id);
+          }
+        }}
+        title="Delete Course"
+        description="Are you sure you want to delete this course? All associated enrollments and materials will be deleted. This action cannot be undone."
+        itemName={selectedCourse?.title}
+        confirmText="Delete"
+      />
     </div>
   );
 }

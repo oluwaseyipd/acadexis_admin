@@ -145,6 +145,19 @@ const adminService = {
     return response.data;
   },
 
+  async createCourse(data: {
+    title: string;
+    code: string;
+    description?: string;
+    department?: string | null;
+    lecturer?: string | null;
+    level: string;
+    lecturer_remark?: string;
+  }): Promise<AdminCourse> {
+    const response = await apiClient.post<AdminCourse>(API_ENDPOINTS.ADMIN.COURSES, data);
+    return response.data;
+  },
+
   async deleteCourse(courseId: string): Promise<{ success: boolean }> {
     const response = await apiClient.delete<void>(`${API_ENDPOINTS.ADMIN.COURSES}${courseId}/`);
     return { success: response.status === 204 };

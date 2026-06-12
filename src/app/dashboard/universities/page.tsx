@@ -2,91 +2,71 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Search, MoreVertical, Plus, Edit, Trash2, GraduationCap } from "lucide-react";
+import { Building2, Search, MoreVertical, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import adminService from "@/services/adminService";
 import type { University } from "@/types";
 import { toast } from "@/hooks/use-toast";
-
-const universitySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  code: z.string().optional(),
-  description: z.string().optional(),
-});
-
-type UniversityForm = z.infer<typeof universitySchema>;
+import { UniversityDetailsDialog } from "@/components/dashboard/dialogs/UniversityDetailsDialog";
+import { UniversityFormDialog } from "@/components/dashboard/dialogs/UniversityFormDialog";
+import { DeleteConfirmationDialog } from "@/components/dashboard/dialogs/DeleteConfirmationDialog";
 
 export default function UniversitiesPage() {
   const [search, setSearch] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const form = useForm<UniversityForm>({
-    resolver: zodResolver(universitySchema),
-    defaultValues: { name: "", code: "", description: "" },
-  });
+  // Dialog States
+  const [selectedUniversity, setSelectedUniversity] = useState<University | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const fetchUniversities = async () => {
       setLoading(true);
       try {
-        const params: any = {};
+        const params: Record<string, string | number | boolean> = {};
         if (search) params.search = search;
         const data = await adminService.getUniversities(params);
         if (!mounted) return;
         setUniversities(data.results || data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to fetch universities:", err);
         if (!mounted) return;
-        const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to load universities";
+        const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+        const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to load universities";
         toast.error(msg);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    fetchUniversities();
+    const timer = setTimeout(() => {
+      fetchUniversities();
+    }, 0);
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
   }, [search, refreshTrigger]);
 
-  const onSubmit = async (data: UniversityForm) => {
-    try {
-      await adminService.createUniversity(data);
-      setOpen(false);
-      form.reset();
-      toast.success("University created successfully");
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      console.error("Failed to create university:", err);
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to create university";
-      toast.error(msg);
-    }
-  };
-
   const handleDeleteUniversity = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this university?")) return;
     try {
       await adminService.deleteUniversity(id);
       toast.success("University deleted successfully");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to delete university:", err);
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Failed to delete university";
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to delete university";
       toast.error(msg);
     }
   };
@@ -98,45 +78,10 @@ export default function UniversitiesPage() {
           <h1 className="text-2xl font-bold text-foreground">Universities</h1>
           <p className="text-muted-foreground mt-1">Manage universities on the platform.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add University
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New University</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl><Input placeholder="University name" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="code" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Code</FormLabel>
-                    <FormControl><Input placeholder="e.g., UCT" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><Input placeholder="Description" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="submit" className="w-full">Create University</Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <Button className="gap-2" onClick={() => { setSelectedUniversity(null); setFormOpen(true); }}>
+          <Plus className="h-4 w-4" />
+          Add University
+        </Button>
       </div>
 
       <Card className="shadow-card">
@@ -160,6 +105,11 @@ export default function UniversitiesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
             </div>
+          ) : universities.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg bg-card/30">
+              <Building2 className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No universities found.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {universities.map((uni, i) => (
@@ -179,10 +129,16 @@ export default function UniversitiesPage() {
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
-                        <DropdownMenuItem><GraduationCap className="h-4 w-4 mr-2" />View Faculties</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedUniversity(uni); setDetailsOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedUniversity(uni); setFormOpen(true); }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUniversity(uni.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => { setSelectedUniversity(uni); setDeleteOpen(true); }}>
                           <Trash2 className="h-4 w-4 mr-2" />Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -196,6 +152,33 @@ export default function UniversitiesPage() {
           )}
         </CardContent>
       </Card>
+
+      <UniversityDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        university={selectedUniversity}
+      />
+
+      <UniversityFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        university={selectedUniversity}
+        onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={async () => {
+          if (selectedUniversity) {
+            await handleDeleteUniversity(selectedUniversity.id);
+          }
+        }}
+        title="Delete University"
+        description="Are you sure you want to delete this university? All associated faculties, departments, courses, and enrollments will be deleted. This action cannot be undone."
+        itemName={selectedUniversity?.name}
+        confirmText="Delete"
+      />
     </div>
   );
 }
