@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Eye,
   Edit,
+  Trash2,
 } from "lucide-react";
 import { UserDetailsDialog } from "@/components/dashboard/dialogs/UserDetailsDialog";
 import { EditUserDialog } from "@/components/dashboard/dialogs/EditUserDialog";
@@ -57,6 +58,7 @@ export default function AdminUsersPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -121,6 +123,19 @@ export default function AdminUsersPage() {
       console.error("Failed to toggle user status:", err);
       const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
       const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to update user status";
+      toast.error(msg);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await adminService.deleteUser(userId);
+      toast.success("User account deleted completely");
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: unknown) {
+      console.error("Failed to delete user:", err);
+      const apiError = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = apiError.response?.data?.detail || apiError.response?.data?.message || "Failed to delete user";
       toast.error(msg);
     }
   };
@@ -315,6 +330,16 @@ export default function AdminUsersPage() {
                       >
                         {user.is_active ? "Deactivate User" : "Activate User"}
                       </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setDeleteOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Account
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </motion.div>
@@ -367,6 +392,20 @@ export default function AdminUsersPage() {
         description="Are you sure you want to deactivate this user account? The user will lose access to the system until reactivated."
         itemName={selectedUser?.email}
         confirmText="Deactivate"
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={async () => {
+          if (selectedUser) {
+            await handleDeleteUser(selectedUser.id);
+          }
+        }}
+        title="Delete User Account"
+        description="Are you sure you want to completely delete this user account? This action is permanent and cannot be undone."
+        itemName={selectedUser?.email}
+        confirmText="Delete Permanently"
       />
     </div>
   );

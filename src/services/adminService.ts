@@ -117,6 +117,11 @@ const adminService = {
     return response.data;
   },
 
+  async deleteUser(userId: string): Promise<{ success: boolean }> {
+    const response = await apiClient.delete<void>(`${API_ENDPOINTS.ADMIN.USERS}${userId}/`);
+    return { success: response.status === 204 || response.status === 200 };
+  },
+
   // ── Course Management ────────────────────────────────────────────────────────
 
   async getCourses(params?: CourseFilters): Promise<PaginatedAdminCourses> {
